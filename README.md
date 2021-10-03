@@ -37,6 +37,14 @@ LETSENCRYPT_EMAIL=info@yourdomain.tld    # only needed when email differs from d
 # Get started
 
 ### **Step 1: Launch nginx-proxy & acme-companion**
+
+Make sure to set the letsencrypt default email in [proxy  docker-compose.yml](proxy/docker-compose.yml) proxy/docker-compose.yml to your desired email address:
+```yml
+    environment:
+      - DEFAULT_EMAIL=info@yourdomain.tld    
+```
+
+
 Let's first bring up our proxy module:
 ```sh
 cd proxy
@@ -73,6 +81,15 @@ Reloading nginx proxy (5a66246?????????????????REDACTED?????????????????????????
 <br/>
 
 ### **Step 2: Bring up the first service module**
+
+Set VIRTUAL_HOST and LETSENCRYPT_HOST in [influxdb docker-compose.yml](services/influxdb/docker-compose.yml) to your desired subdomain:
+```yml
+    environment:
+      - VIRTUAL_HOST=influx.yourdomain.tld
+      - LETSENCRYPT_HOST=influx.yourdomain.tld
+```
+The chosen domain should be resolving to your host.
+
 Next, let's do the same for influxdb module:
 ```sh
 cd ../services/influxdb
@@ -109,7 +126,7 @@ nginx.1     | influx.example.com 52.xxx.xxx.xx - - [02/Oct/2021:13:12:12 +0000] 
 
 <br/>
 
-We can see that nginx-proxy/dockergen has detected influxdb service and generated its configuration. Then the acme-challenge is executed.
+We can see that nginx-proxy/dockergen has detected influxdb service and generated its configuration, followed by a reload of nginx service. Then the acme-challenge is executed.
 
 
 Next, check the logs of nginx-proxy-acme:
@@ -198,7 +215,7 @@ networks:
 ```
 
 This allows the grafana service to connect to InfluxDB, giving us more graphing tools for the same data. 
-Grafana should now be reachable under the following link: grafana.yourdomain.tld
+Grafana should now be reachable under the following link: https://grafana.yourdomain.tld
 You will be greeted with a login page. Login using the default credentials:
 ```
 user: admin
@@ -217,7 +234,7 @@ There are only 3 settings required:
 ### **Step 4: Want more?**
 
 In the last example, you can bring up MongoDB and mongo-express UI in a similar fahsion.
-Mongo-express database explorer should become available under mongo.yourdomain.tld.
+Mongo-express database explorer should become available under https://mongo.yourdomain.tld.
 
 <br/>
 
@@ -238,9 +255,8 @@ Mongo-express database explorer should become available under mongo.yourdomain.t
 
 # Troubleshooting
 - Make sure your host is publicly reachable on both port 80 and 443. Check your firewall rules.
-- Make sure you have a valid A record set up for all subdomains, so they can be resolved in the acme challenges.
-- Every service needs to expose the port it is listening on inside the container (not the host system) in order for nginx-proxy and acme-companion to be able to detect it. This can be achieved either in the build setup by using EXPOSE 'port_number' in Dockerfile or post-build with the 
-  ```-expose "port_number"``` parameter in docker-compose.yml. This won't expose ports to the host system, but make them available to services on the same docker network. In our example this can be omitted, since we're just pulling images from Dockerhub, which already have their ports exposed in their respective Dockerfiles.
+- Make sure you have a valid A record set up for all subdomains, so they can be resolved in the acme challenges and the subdomain resolves to your host.
+- Every service needs to expose the port it is listening on inside the container (not the host system) in order for nginx-proxy and acme-companion to be able to detect it. This can be achieved either in the build setup by using EXPOSE 'port_number' in Dockerfile or post-build with   ```-expose "port_number"``` parameter in docker-compose.yml. This won't expose ports to the host system, but make them available to services on the same docker network. In our example this can be omitted, since we're just pulling images from Dockerhub, which already have their ports exposed in their respective Dockerfiles.
 - VIRTUAL_PORT is needed for every service, that is listening on a different port than the default, port 80.
 
 For more details, refer to the documentation of:
