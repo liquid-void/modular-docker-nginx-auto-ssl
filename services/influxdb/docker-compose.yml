@@ -1,0 +1,25 @@
+version: '3.9'
+
+services:
+  influxdb:
+    image: influxdb:latest
+    volumes:
+      - influxdb-data:/var/lib/influxdb
+      - ./config/:/etc/influxdb/
+    environment:
+      - VIRTUAL_HOST=influx.yourdomain.tld
+      - VIRTUAL_PORT=8086
+      - LETSENCRYPT_HOST=influx.yourdomain.tld
+    networks:
+      - front
+      - back
+
+volumes:
+  influxdb-data:
+
+networks:
+  back:
+    driver: bridge
+  front:
+    external:
+      name: proxy_front

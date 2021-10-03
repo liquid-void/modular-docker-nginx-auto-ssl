@@ -1,0 +1,35 @@
+version: '2'                                     # version '2' here because we utilize volumes_from to reduce boilerplate
+services:
+  nginx-proxy:
+    image: nginxproxy/nginx-proxy
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:                                     # volumes to:
+      - letsencrypt-certs:/etc/nginx/certs       #   store certificates
+      - letsencrypt-vhost-d:/etc/nginx/vhost.d   #   store configuration of vhosts for http-01 challenge
+      - letsencrypt-html:/usr/share/nginx/html   #   write http-01 challenge files.
+      - /var/run/docker.sock:/tmp/docker.sock:ro # read only access to docker.sock to listen for new services
+    networks:
+      - front                                    # network to give nginx-proxy access to new services with exposed ports
+                                                 # each front-end service must be part of the same network
+  nginx-proxy-acme:
+    image: nginxproxy/acme-companion
+    container_name: nginx-proxy-acme
+    volumes_from:                                # acme-companion needs access to all volumes mentioned above
+      - nginx-proxy                              # notice, that no ports are exposed and this service is not connected to any network
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /etc/acme.sh                             # volume to store acme.sh configuration and state
+    environment:
+      - DEFAULT_EMAIL=info@yourdomain.tld        # DEFAULT_EMAIL will be used for certificates 
+                                                 # when no LETSENCRYPT_EMAIL is defined for a service
+networks:
+    front:
+      driver: bridge
+
+volumes:
+  letsencrypt-certs:
+  letsencrypt-vhost-d:
+  letsencrypt-html:
